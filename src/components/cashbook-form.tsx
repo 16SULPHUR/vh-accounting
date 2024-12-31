@@ -97,12 +97,18 @@ export function CashbookForm({ onSuccess, initialData, voucherType }: CashbookFo
         />
         <FormField
           control={form.control}
-          name="remarks"
+          name="amount"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Remarks</FormLabel>
+              <FormLabel>Amount</FormLabel>
               <FormControl>
-                <Textarea placeholder="Enter remarks (optional)" {...field} />
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="Enter amount"
+                  {...field}
+                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -110,18 +116,12 @@ export function CashbookForm({ onSuccess, initialData, voucherType }: CashbookFo
         />
         <FormField
           control={form.control}
-          name="amount"
+          name="remarks"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Amount</FormLabel>
+              <FormLabel>Remarks</FormLabel>
               <FormControl>
-                <Input 
-                  type="number" 
-                  step="0.01" 
-                  placeholder="Enter amount" 
-                  {...field} 
-                  onChange={(e) => field.onChange(parseFloat(e.target.value))} 
-                />
+                <Textarea placeholder="Enter remarks (optional)" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
