@@ -13,10 +13,10 @@ interface VoucherTypeDialogProps {
   onSelect: (value: VoucherType) => void;
 }
 
-const VoucherTypeDialog: React.FC<VoucherTypeDialogProps> = ({ 
-  isOpen, 
-  onOpenChange, 
-  onSelect 
+const VoucherTypeDialog: React.FC<VoucherTypeDialogProps> = ({
+  isOpen,
+  onOpenChange,
+  onSelect
 }) => {
   const [selectedType, setSelectedType] = useState<VoucherType>('receipt');
 
@@ -85,12 +85,14 @@ const VoucherTypeDialog: React.FC<VoucherTypeDialogProps> = ({
               value="receipt"
               id="receipt"
               className="peer sr-only"
+              onClick={() => {
+                onSelect('receipt')
+              }}
             />
             <Label
               htmlFor="receipt"
-              className={`flex flex-col items-center justify-center h-40 rounded-xl border-2 ${
-                selectedType === 'receipt' ? 'border-primary' : 'border-muted'
-              } bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer transition-all`}
+              className={`flex flex-col items-center justify-center h-40 rounded-xl border-2 ${selectedType === 'receipt' ? 'border-primary' : 'border-muted'
+                } bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer transition-all`}
             >
               <Receipt className="mb-3 h-8 w-8" />
               <span className="text-lg font-medium">Receipt</span>
@@ -100,18 +102,20 @@ const VoucherTypeDialog: React.FC<VoucherTypeDialogProps> = ({
               </kbd>
             </Label>
           </div>
-          
+
           <div className="relative">
             <RadioGroupItem
               value="payment"
               id="payment"
               className="peer sr-only"
+              onClick={() => {
+                onSelect('payment')
+              }}
             />
             <Label
               htmlFor="payment"
-              className={`flex flex-col items-center justify-center h-40 rounded-xl border-2 ${
-                selectedType === 'payment' ? 'border-primary' : 'border-muted'
-              } bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer transition-all`}
+              className={`flex flex-col items-center justify-center h-40 rounded-xl border-2 ${selectedType === 'payment' ? 'border-primary' : 'border-muted'
+                } bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer transition-all`}
             >
               <CreditCard className="mb-3 h-8 w-8" />
               <span className="text-lg font-medium">Payment</span>

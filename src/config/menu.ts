@@ -1,41 +1,41 @@
-import { Icons } from "@/components/icons"
-
-interface NavItem {
-    title: string
-    to?: string
-    href?: string
-    disabled?: boolean
-    external?: boolean
-    icon?: keyof typeof Icons
-    label?: string
-}
-
-interface NavItemWithChildren extends NavItem {
-    items?: NavItemWithChildren[]
-}
-
-export const mainMenu: NavItemWithChildren[] = [
+export const menuConfig = [
     {
-        title: 'Dashboard',
-        to: '',
+      label: 'Dashboard',
+      href: '/',    
     },
     {
-        title: 'Dropdown',
-        items: [
-            {
-                title: 'Sample',
-                to: '/sample',
-            },
-            {
-                title: 'Sample Dua',
-                to: '/#',
-            },
-        ]
+      label: 'Masters',
+      submenu: [
+        { label: 'Accounts', href: '/masters/accounts' },
+        { label: 'Inventory', href: '/masters/inventory' },
+      ],
     },
     {
-        title: 'Empty',
-        to: 'empty',
+      label: 'Reports',
+      submenu: [
+        { label: 'Cashbook', href: '/reports/cashbook' },
+        { label: 'Bankbook', href: '/reports/bankbook' },
+      ],
     },
-]
-
-export const sideMenu: NavItemWithChildren[] = []
+    {
+      label: 'Transactions',
+      submenu: [
+        {
+          label: 'Cashbook',
+          submenu: [
+            { label: 'Receipt', href: '/transactions/cashbook/receipt' },
+            { label: 'Payment', href: '/transactions/cashbook/payment' },
+          ],
+        },
+        {
+          label: 'Bankbook',
+          submenu: [
+            { label: 'Receipt', href: '/transactions/bankbook/receipt' },
+            { label: 'Payment', href: '/transactions/bankbook/payment' },
+          ],
+        },
+      ],
+    },
+  ];
+  
+  
