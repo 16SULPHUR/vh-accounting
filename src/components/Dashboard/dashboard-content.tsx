@@ -35,12 +35,12 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
   const [timeFilter, setTimeFilter] = useState('today')
   const [data, setData] = useState<Invoice[]>(initialData)
   const [dateRange, setDateRange] = useState<{
-  from: Date | undefined
-  to: Date | undefined
-}>({
-  from: undefined,
-  to: undefined
-})
+    from: Date | undefined
+    to: Date | undefined
+  }>({
+    from: undefined,
+    to: undefined
+  })
 
   useEffect(() => {
     filterData('today')
@@ -76,12 +76,16 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
         return
     }
 
+    const filteredData = initialData.filter(item => new Date(item.date) >= filterDate && new Date(item.date) <= now)
+    setData(filteredData)
+  }
+
   const handleFilterChange = (value: string) => {
     setTimeFilter(value)
     filterData(value)
   }
 
-    const handleDateRangeSelect = (range: { from: Date | undefined; to: Date | undefined }) => {
+  const handleDateRangeSelect = (range: { from: Date | undefined; to: Date | undefined }) => {
     setDateRange(range)
     if (range.from && range.to) {
       setTimeFilter('custom')
@@ -90,7 +94,7 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
   }
 
   // Calculate total sales
- const totalSales = data.reduce((sum, item) => sum + item.total, 0)
+  const totalSales = data.reduce((sum, item) => sum + item.total, 0)
 
   // Calculate average sale
   const averageSale = totalSales / data.length || 0
@@ -118,8 +122,8 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
               <SelectItem value="custom">Custom Range</SelectItem>
             </SelectContent>
           </Select>
-
-           {timeFilter === 'custom' && (
+          
+          {timeFilter === 'custom' && (
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-[280px] justify-start text-left font-normal">
@@ -149,8 +153,6 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
               </PopoverContent>
             </Popover>
           )}
-
-          
         </div>
       </div>
       <Tabs defaultValue="overview" className="space-y-4">
@@ -264,10 +266,10 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
                 <CustomerInsights data={data} />
               </CardContent>
             </Card>
+            {/* Add more analytics components here */}
           </div>
         </TabsContent>
       </Tabs>
     </div>
   )
 }
-
