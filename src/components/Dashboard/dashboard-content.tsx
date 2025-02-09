@@ -4,11 +4,15 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { SalesChart } from './sales-chart'
 import { TopProducts } from './top-products'
 import { RecentSales } from './recent-sales'
 import { RevenueSummary } from './revenue-summary'
 import { CustomerInsights } from './customer-insights'
+import { format } from "date-fns"
 
 interface Invoice {
   id: number
@@ -30,6 +34,13 @@ interface DashboardContentProps {
 export function DashboardContent({ initialData }: DashboardContentProps) {
   const [timeFilter, setTimeFilter] = useState('today')
   const [data, setData] = useState<Invoice[]>(initialData)
+  const [dateRange, setDateRange] = useState<{
+  from: Date | undefined
+  to: Date | undefined
+}>({
+  from: undefined,
+  to: undefined
+})
 
   useEffect(() => {
     filterData('today')
@@ -50,22 +61,36 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
       case '30days':
         filterDate.setDate(filterDate.getDate() - 30)
         break
+      case 'custom':
+        if (dateRange.from && dateRange.to) {
+          const filteredData = initialData.filter(item => {
+            const itemDate = new Date(item.date)
+            return itemDate >= dateRange.from! && itemDate <= dateRange.to!
+          })
+          setData(filteredData)
+          return
+        }
+        break
       default:
         setData(initialData)
         return
     }
-
-    const filteredData = initialData.filter(item => new Date(item.date) >= filterDate && new Date(item.date) <= now)
-    setData(filteredData)
-  }
 
   const handleFilterChange = (value: string) => {
     setTimeFilter(value)
     filterData(value)
   }
 
+    const handleDateRangeSelect = (range: { from: Date | undefined; to: Date | undefined }) => {
+    setDateRange(range)
+    if (range.from && range.to) {
+      setTimeFilter('custom')
+      filterData('custom')
+    }
+  }
+
   // Calculate total sales
-  const totalSales = data.reduce((sum, item) => sum + item.total, 0)
+ const totalSales = data.reduce((sum, item) => sum + item.total, 0)
 
   // Calculate average sale
   const averageSale = totalSales / data.length || 0
@@ -90,8 +115,42 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
               <SelectItem value="today">Today</SelectItem>
               <SelectItem value="7days">Last 7 Days</SelectItem>
               <SelectItem value="30days">Last 30 Days</SelectItem>
+              <SelectItem value="custom">Custom Range</SelectItem>
             </SelectContent>
           </Select>
+
+           {timeFilter === 'custom' && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-[280px] justify-start text-left font-normal">
+                  {dateRange.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "LLL dd, y")} -{" "}
+                        {format(dateRange.to, "LLL dd, y")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "LLL dd, y")
+                    )
+                  ) : (
+                    <span>Pick a date range</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange.from}
+                  selected={dateRange}
+                  onSelect={handleDateRangeSelect}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+
+          
         </div>
       </div>
       <Tabs defaultValue="overview" className="space-y-4">
