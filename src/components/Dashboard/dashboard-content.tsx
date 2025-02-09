@@ -5,13 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { SalesChart } from './sales-chart'
 import { TopProducts } from './top-products'
 import { RecentSales } from './recent-sales'
 import { RevenueSummary } from './revenue-summary'
 import { CustomerInsights } from './customer-insights'
+import { Input } from "@/components/ui/input"
 import { format } from "date-fns"
 
 interface Invoice {
@@ -34,12 +34,9 @@ interface DashboardContentProps {
 export function DashboardContent({ initialData }: DashboardContentProps) {
   const [timeFilter, setTimeFilter] = useState('today')
   const [data, setData] = useState<Invoice[]>(initialData)
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined
-    to: Date | undefined
-  }>({
-    from: undefined,
-    to: undefined
+  const [dateRange, setDateRange] = useState({
+    from: '',
+    to: ''
   })
 
   useEffect(() => {
@@ -63,9 +60,13 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
         break
       case 'custom':
         if (dateRange.from && dateRange.to) {
+          const fromDate = new Date(dateRange.from)
+          const toDate = new Date(dateRange.to)
+          toDate.setHours(23, 59, 59, 999) // Set to end of day
+
           const filteredData = initialData.filter(item => {
             const itemDate = new Date(item.date)
-            return itemDate >= dateRange.from! && itemDate <= dateRange.to!
+            return itemDate >= fromDate && itemDate <= toDate
           })
           setData(filteredData)
           return
@@ -82,13 +83,18 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
 
   const handleFilterChange = (value: string) => {
     setTimeFilter(value)
-    filterData(value)
+    if (value !== 'custom') {
+      setDateRange({ from: '', to: '' })
+      filterData(value)
+    }
   }
 
-  const handleDateRangeSelect = (range: { from: Date | undefined; to: Date | undefined }) => {
-    setDateRange(range)
-    if (range.from && range.to) {
-      setTimeFilter('custom')
+  const handleDateChange = (field: 'from' | 'to', value: string) => {
+    setDateRange(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleApplyDateRange = () => {
+    if (dateRange.from && dateRange.to) {
       filterData('custom')
     }
   }
@@ -104,7 +110,6 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
     const products = JSON.parse(item.products)
     return sum + products.reduce((productSum: number, product: any) => productSum + product.quantity, 0)
   }, 0)
-
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -124,34 +129,35 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
           </Select>
           
           {timeFilter === 'custom' && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-[280px] justify-start text-left font-normal">
-                  {dateRange.from ? (
-                    dateRange.to ? (
-                      <>
-                        {format(dateRange.from, "LLL dd, y")} -{" "}
-                        {format(dateRange.to, "LLL dd, y")}
-                      </>
-                    ) : (
-                      format(dateRange.from, "LLL dd, y")
-                    )
-                  ) : (
-                    <span>Pick a date range</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={dateRange.from}
-                  selected={dateRange}
-                  onSelect={handleDateRangeSelect}
-                  numberOfMonths={2}
+            <div className="flex items-center space-x-2">
+              <div className="flex flex-col">
+                <label htmlFor="from-date" className="text-sm mb-1">From</label>
+                <input
+                  type="date"
+                  id="from-date"
+                  value={dateRange.from}
+                  onChange={(e) => handleDateChange('from', e.target.value)}
+                  className="px-3 py-2 border rounded-md text-sm text-black"
                 />
-              </PopoverContent>
-            </Popover>
+              </div>
+              <div className="flex flex-col">
+                <label htmlFor="to-date" className="text-sm mb-1">To</label>
+                <input
+                  type="date"
+                  id="to-date"
+                  value={dateRange.to}
+                  onChange={(e) => handleDateChange('to', e.target.value)}
+                  className="px-3 py-2 border rounded-md text-sm text-black"
+                />
+              </div>
+              <Button 
+                onClick={handleApplyDateRange}
+                className="mt-6"
+                disabled={!dateRange.from || !dateRange.to}
+              >
+                Apply
+              </Button>
+            </div>
           )}
         </div>
       </div>
