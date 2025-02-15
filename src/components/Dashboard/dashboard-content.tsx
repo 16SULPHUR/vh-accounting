@@ -4,11 +4,15 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { SalesChart } from './sales-chart'
 import { TopProducts } from './top-products'
 import { RecentSales } from './recent-sales'
 import { RevenueSummary } from './revenue-summary'
 import { CustomerInsights } from './customer-insights'
+import { Input } from "@/components/ui/input"
+import { format } from "date-fns"
 import { ProductAnalytics } from './product-analytics'
 import { supabase } from '@/lib/supabase'
 
@@ -39,6 +43,10 @@ interface Product {
 export function DashboardContent({ initialData }: DashboardContentProps) {
   const [timeFilter, setTimeFilter] = useState('today')
   const [data, setData] = useState<Invoice[]>(initialData)
+  const [dateRange, setDateRange] = useState({
+    from: '',
+    to: ''
+  })
   const [allproducts, setAllProducts] = useState<Product[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
 
@@ -77,6 +85,20 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
       case '30days':
         filterDate.setDate(filterDate.getDate() - 30)
         break
+      case 'custom':
+        if (dateRange.from && dateRange.to) {
+          const fromDate = new Date(dateRange.from)
+          const toDate = new Date(dateRange.to)
+          toDate.setHours(23, 59, 59, 999) // Set to end of day
+
+          const filteredData = initialData.filter(item => {
+            const itemDate = new Date(item.date)
+            return itemDate >= fromDate && itemDate <= toDate
+          })
+          setData(filteredData)
+          return
+        }
+        break
       default:
         setData(initialData)
         return
@@ -88,7 +110,20 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
 
   const handleFilterChange = (value: string) => {
     setTimeFilter(value)
-    filterData(value)
+    if (value !== 'custom') {
+      setDateRange({ from: '', to: '' })
+      filterData(value)
+    }
+  }
+
+  const handleDateChange = (field: 'from' | 'to', value: string) => {
+    setDateRange(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleApplyDateRange = () => {
+    if (dateRange.from && dateRange.to) {
+      filterData('custom')
+    }
   }
 
   // Calculate total sales
@@ -102,7 +137,6 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
     const products = JSON.parse(item.products)
     return sum + products.reduce((productSum: number, product: any) => productSum + product.quantity, 0)
   }, 0)
-
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -117,8 +151,41 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
               <SelectItem value="today">Today</SelectItem>
               <SelectItem value="7days">Last 7 Days</SelectItem>
               <SelectItem value="30days">Last 30 Days</SelectItem>
+              <SelectItem value="custom">Custom Range</SelectItem>
             </SelectContent>
           </Select>
+          
+          {timeFilter === 'custom' && (
+            <div className="flex items-center space-x-2">
+              <div className="flex flex-col">
+                <label htmlFor="from-date" className="text-sm mb-1">From</label>
+                <input
+                  type="date"
+                  id="from-date"
+                  value={dateRange.from}
+                  onChange={(e) => handleDateChange('from', e.target.value)}
+                  className="px-3 py-2 border rounded-md text-sm text-black"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label htmlFor="to-date" className="text-sm mb-1">To</label>
+                <input
+                  type="date"
+                  id="to-date"
+                  value={dateRange.to}
+                  onChange={(e) => handleDateChange('to', e.target.value)}
+                  className="px-3 py-2 border rounded-md text-sm text-black"
+                />
+              </div>
+              <Button 
+                onClick={handleApplyDateRange}
+                className="mt-6"
+                disabled={!dateRange.from || !dateRange.to}
+              >
+                Apply
+              </Button>
+            </div>
+          )}
         </div>
       </div>
       <Tabs defaultValue="overview" className="space-y-4">
@@ -233,6 +300,7 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
                 <CustomerInsights data={data} />
               </CardContent>
             </Card>
+            {/* Add more analytics components here */}
           </div>
         </TabsContent>
         <TabsContent value="products" className="space-y-4">
@@ -242,4 +310,3 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
     </div>
   )
 }
-
