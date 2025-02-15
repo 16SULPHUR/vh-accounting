@@ -9,8 +9,10 @@ import { TopProducts } from './top-products'
 import { RecentSales } from './recent-sales'
 import { RevenueSummary } from './revenue-summary'
 import { CustomerInsights } from './customer-insights'
+import { ProductAnalytics } from './product-analytics'
+import { supabase } from '@/lib/supabase'
 
-interface Invoice {
+export interface Invoice {
   id: number
   date: string
   customerName: string
@@ -27,9 +29,34 @@ interface DashboardContentProps {
   initialData: Invoice[]
 }
 
+interface Product {
+  id: string
+  name: string
+  cost: number
+  sellingPrice: number
+}
+
 export function DashboardContent({ initialData }: DashboardContentProps) {
   const [timeFilter, setTimeFilter] = useState('today')
   const [data, setData] = useState<Invoice[]>(initialData)
+  const [allproducts, setAllProducts] = useState<Product[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: productsData, error: productsError } = await supabase
+        .from("products")
+        .select("id, name, cost, sellingPrice");
+
+      if (productsError) {
+        console.error("Error fetching products:", productsError);
+      } else {
+        setAllProducts(productsData);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   useEffect(() => {
     filterData('today')
@@ -98,6 +125,7 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="products">Profit Analysis</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -207,6 +235,9 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
             </Card>
           </div>
         </TabsContent>
+        <TabsContent value="products" className="space-y-4">
+      <ProductAnalytics data={data} products={allproducts} />
+    </TabsContent>
       </Tabs>
     </div>
   )

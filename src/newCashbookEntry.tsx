@@ -11,7 +11,7 @@ export default function AddCashbookEntry() {
   const handleVoucherTypeSelection = (type: 'receipt' | 'payment') => {
     console.log(type)
     setIsVoucherTypeDialogOpen(false)
-    navigate(`/add-entry/${type}`)
+    navigate(`/transactions/cashbook/${type}`)
   }
 
   return (

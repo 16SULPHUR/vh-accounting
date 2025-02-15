@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -24,6 +24,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { format } from "date-fns"
 
 // Schema definitions remain the same
 const baseSchema = z.object({
@@ -70,6 +71,9 @@ export function CashbookForm({ onSuccess, initialData, voucherType }: CashbookFo
   const [newAccountName, setNewAccountName] = useState('')
   const [isCreatingAccount, setIsCreatingAccount] = useState(false)
   const [open, setOpen] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  console.log(initialData)
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -80,7 +84,9 @@ export function CashbookForm({ onSuccess, initialData, voucherType }: CashbookFo
       remarks: initialData.remarks || '',
       amount: initialData.amount || 0,
       voucher_type: initialData.voucher_type || voucherType,
-      created_at: initialData.created_at || new Date().toISOString().split('T')[0]
+      created_at: initialData.created_at
+        ? format(new Date(initialData.created_at), "yyyy-MM-dd")
+        : format(new Date(), "yyyy-MM-dd"),
     },
   })
 
@@ -102,7 +108,8 @@ export function CashbookForm({ onSuccess, initialData, voucherType }: CashbookFo
   }, [])
 
   const handleCreateNewAccount = async () => {
-    if (!newAccountName.trim()) {
+    const accountName = newAccountName || searchInputRef.current?.value || ''
+    if (!accountName.trim()) {
       toast.error("Account name cannot be empty")
       return
     }
@@ -111,7 +118,7 @@ export function CashbookForm({ onSuccess, initialData, voucherType }: CashbookFo
     try {
       const { data, error } = await supabase
         .from('accounts_master')
-        .insert({ name: newAccountName.trim() })
+        .insert({ name: accountName.trim() })
         .select()
         .single()
 
@@ -123,6 +130,7 @@ export function CashbookForm({ onSuccess, initialData, voucherType }: CashbookFo
         toast.success("Account created successfully")
         setIsNewAccountDialogOpen(false)
         setNewAccountName('')
+        setOpen(false)
       }
     } catch (error) {
       console.error('Error creating account:', error)
@@ -151,15 +159,19 @@ export function CashbookForm({ onSuccess, initialData, voucherType }: CashbookFo
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
+      <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 gap-4">
+      <FormField
           control={form.control}
           name="created_at"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Date</FormLabel>
               <FormControl>
-                <Input type="date" {...field} />
+                <input type="date" {...field} 
+                
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm custom-date-picker"
+                
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -191,20 +203,16 @@ export function CashbookForm({ onSuccess, initialData, voucherType }: CashbookFo
                     </Button>
                   </FormControl>
                 </PopoverTrigger>
-                <PopoverContent className="p-0">
+                <PopoverContent className="w-full p-0">
                   <Command>
-                    <CommandInput placeholder="Search party..." />
+                    <CommandInput placeholder="Search party..." ref={searchInputRef} />
                     <CommandEmpty>
                       No party found.
                       <Button
                         type="button"
                         variant="outline"
                         className="w-full mt-2"
-                        onClick={() => {
-                          setNewAccountName('')
-                          setIsNewAccountDialogOpen(true)
-                          setOpen(false)
-                        }}
+                        onClick={handleCreateNewAccount}
                       >
                         Create New Account
                       </Button>
@@ -287,7 +295,7 @@ export function CashbookForm({ onSuccess, initialData, voucherType }: CashbookFo
           )}
         />
 
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading} className="col-span-2">
           {isLoading ? 'Submitting...' : form.getValues('type') === 'update' ? 'Update' : 'Submit'}
         </Button>
       </form>
