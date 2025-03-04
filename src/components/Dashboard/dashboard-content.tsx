@@ -33,11 +33,17 @@ interface DashboardContentProps {
   initialData: Invoice[]
 }
 
-interface Product {
-  id: string
-  name: string
-  cost: number
-  sellingPrice: number
+export interface Product {
+  id: string;
+  name: string;
+  cost: number;
+  sellingPrice: number;
+  supplier: string; // Add supplier field
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
 }
 
 export function DashboardContent({ initialData }: DashboardContentProps) {
@@ -49,17 +55,28 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
   })
   const [allproducts, setAllProducts] = useState<Product[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       const { data: productsData, error: productsError } = await supabase
         .from("products")
-        .select("id, name, cost, sellingPrice");
+        .select("id, name, cost, sellingPrice, supplier");
+
+      const { data: suppliersData, error: suppliersError } = await supabase
+        .from("suppliers")
+        .select("id, name");
 
       if (productsError) {
         console.error("Error fetching products:", productsError);
       } else {
         setAllProducts(productsData);
+      }
+
+      if (suppliersError) {
+        console.error("Error fetching suppliers:", suppliersError);
+      } else {
+        setSuppliers(suppliersData);
       }
     };
 
@@ -154,7 +171,7 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
               <SelectItem value="custom">Custom Range</SelectItem>
             </SelectContent>
           </Select>
-          
+
           {timeFilter === 'custom' && (
             <div className="flex items-center space-x-2">
               <div className="flex flex-col">
@@ -177,7 +194,7 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
                   className="px-3 py-2 border rounded-md text-sm text-black"
                 />
               </div>
-              <Button 
+              <Button
                 onClick={handleApplyDateRange}
                 className="mt-6"
                 disabled={!dateRange.from || !dateRange.to}
@@ -304,8 +321,8 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
           </div>
         </TabsContent>
         <TabsContent value="products" className="space-y-4">
-      <ProductAnalytics data={data} products={allproducts} />
-    </TabsContent>
+          <ProductAnalytics data={data} products={allproducts} suppliers={suppliers} />
+        </TabsContent>
       </Tabs>
     </div>
   )

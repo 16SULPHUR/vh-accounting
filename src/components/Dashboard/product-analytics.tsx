@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Invoice } from './dashboard-content';
+import { Invoice, Product, Supplier } from './dashboard-content';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface ProductAnalysis {
     productId: string;
@@ -18,21 +19,17 @@ interface ProductAnalysis {
 
 interface ProductAnalyticsProps {
     data: Invoice[];
-    products: {
-        id: string;
-        name: string;
-        cost: number;
-        sellingPrice: number;
-    }[];
+    products: Product[];
+    suppliers: Supplier[];
 }
 
-export function ProductAnalytics({ data, products }: ProductAnalyticsProps) {
-    const { productAnalysis, unmatchedProducts, averageProfitMargin } = useMemo(() => {
+export function ProductAnalytics({ data, products, suppliers }: ProductAnalyticsProps) {
+    const { productAnalysis, unmatchedProducts, averageProfitMargin, supplierAnalysis } = useMemo(() => {
         const analysis = new Map<string, ProductAnalysis>();
         const unmatched = new Map<string, ProductAnalysis>();
+        const supplierAnalysis = new Map<string, any>(); // Add supplier analysis map
         let totalMargin = 0;
         let marginCount = 0;
-
 
         // Initialize analysis with all products
         products.forEach(product => {
@@ -46,6 +43,18 @@ export function ProductAnalytics({ data, products }: ProductAnalyticsProps) {
                 profitMargin: 0,
                 averageSellingPrice: 0,
             });
+
+            // Initialize supplier analysis
+            if (!supplierAnalysis.has(product.supplier)) {
+                supplierAnalysis.set(product.supplier, {
+                    supplierId: product.supplier,
+                    totalUnitsSold: 0,
+                    totalRevenue: 0,
+                    totalCost: 0,
+                    profit: 0,
+                    profitMargin: 0,
+                });
+            }
         });
 
         // First pass: analyze matched products to calculate average profit margin
@@ -70,6 +79,14 @@ export function ProductAnalytics({ data, products }: ProductAnalyticsProps) {
                                 totalMargin += current.profitMargin;
                                 marginCount++;
                             }
+
+                            // Update supplier analysis
+                            const supplier = supplierAnalysis.get(productData.supplier);
+                            supplier.totalUnitsSold += product.quantity;
+                            supplier.totalRevenue += product.price * product.quantity;
+                            supplier.totalCost += productData.cost * product.quantity;
+                            supplier.profit = supplier.totalRevenue - supplier.totalCost;
+                            supplier.profitMargin = (supplier.profit / supplier.totalRevenue) * 100;
                         }
                     }
                 });
@@ -124,13 +141,15 @@ export function ProductAnalytics({ data, products }: ProductAnalyticsProps) {
         return {
             productAnalysis: [...matchedProducts, ...unmatchedProductsArray].sort((a, b) => b.profit - a.profit),
             unmatchedProducts: unmatchedProductsArray,
-            averageProfitMargin: avgMargin
+            averageProfitMargin: avgMargin,
+            supplierAnalysis: Array.from(supplierAnalysis.values()), // Return supplier analysis
         };
     }, [data, products]);
 
     const [sortCriteria, setSortCriteria] = useState('profit'); // Default sort by profit
     const [sortOrder, setSortOrder] = useState('desc'); // Default descending order
     const [filterName, setFilterName] = useState(''); // Filter by product name
+
     const sortedAndFilteredProducts = useMemo(() => {
         let filtered = productAnalysis.filter(product =>
             product.name.toLowerCase().includes(filterName.toLowerCase())
@@ -148,6 +167,32 @@ export function ProductAnalytics({ data, products }: ProductAnalyticsProps) {
             }
         });
     }, [productAnalysis, sortCriteria, sortOrder, filterName]);
+
+    const [supplierSortCriteria, setSupplierSortCriteria] = useState('profit'); // Default sort by profit
+    const [supplierSortOrder, setSupplierSortOrder] = useState('desc'); // Default descending order
+    const [supplierFilterName, setSupplierFilterName] = useState(''); // Filter by supplier name
+
+    const sortedAndFilteredSuppliers = useMemo(() => {
+        let filtered = supplierAnalysis.filter(supplier =>
+            suppliers.find(s => s.id === supplier.supplierId)?.name.toLowerCase().includes(supplierFilterName.toLowerCase())
+        );
+
+        return filtered.sort((a: any, b: any) => {
+            if (supplierSortCriteria === 'name') {
+                const aName = suppliers.find(s => s.id === a.supplierId)?.name || '';
+                const bName = suppliers.find(s => s.id === b.supplierId)?.name || '';
+                return supplierSortOrder === 'asc'
+                    ? aName.localeCompare(bName)
+                    : bName.localeCompare(aName);
+            } else {
+                return supplierSortOrder === 'asc'
+                    ? a[supplierSortCriteria] - b[supplierSortCriteria]
+                    : b[supplierSortCriteria] - a[supplierSortCriteria];
+            }
+        });
+    }, [supplierAnalysis, supplierSortCriteria, supplierSortOrder, supplierFilterName]);
+
+
 
 
 
@@ -214,75 +259,149 @@ export function ProductAnalytics({ data, products }: ProductAnalyticsProps) {
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Product Performance Details</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex gap-4 mb-4">
-                        <select
-                            value={sortCriteria}
-                            onChange={(e) => setSortCriteria(e.target.value)}
-                            className="p-2 border rounded bg-primary-foreground"
-                        >
-                            <option value="profit">Profit</option>
-                            <option value="name">Name</option>
-                            <option value="totalUnitsSold">Units Sold</option>
-                            <option value="totalRevenue">Revenue</option>
-                            <option value="profitMargin">Margin</option>
-                        </select>
-                        <select
-                            value={sortOrder}
-                            onChange={(e) => setSortOrder(e.target.value)}
-                            className="p-2 border rounded bg-primary-foreground"
-                        >
-                            <option value="desc">Descending</option>
-                            <option value="asc">Ascending</option>
-                        </select>
-                        <input
-                            type="text"
-                            placeholder="Filter by name..."
-                            value={filterName}
-                            onChange={(e) => setFilterName(e.target.value)}
-                            className="p-2 border rounded bg-primary-foreground"
-                        />
-                    </div>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Product Name</TableHead>
-                                <TableHead className="text-right">Units Sold</TableHead>
-                                <TableHead className="text-right">Revenue</TableHead>
-                                <TableHead className="text-right">Cost</TableHead>
-                                <TableHead className="text-right">Profit</TableHead>
-                                <TableHead className="text-right">Margin</TableHead>
-                                <TableHead className="text-right">Avg Price</TableHead>
-                                <TableHead className="text-right">Status</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {sortedAndFilteredProducts.map((product) => (
-                                <TableRow key={product.productId}>
-                                    <TableCell className="font-medium">{product.name}</TableCell>
-                                    <TableCell className="text-right">{product.totalUnitsSold}</TableCell>
-                                    <TableCell className="text-right">₹{product.totalRevenue.toFixed(2)}</TableCell>
-                                    <TableCell className="text-right">₹{product.totalCost.toFixed(2)}</TableCell>
-                                    <TableCell className="text-right">₹{product.profit.toFixed(2)}</TableCell>
-                                    <TableCell className="text-right">{product.profitMargin.toFixed(1)}%</TableCell>
-                                    <TableCell className="text-right">₹{product.averageSellingPrice.toFixed(2)}</TableCell>
-                                    <TableCell className="text-right">
-                                        {product.isEstimated ? (
-                                            <span className="text-yellow-500">Estimated</span>
-                                        ) : (
-                                            <span className="text-green-500">Matched</span>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+            <Tabs defaultValue="productProfit" className="space-y-4">
+                <TabsList>
+                    <TabsTrigger value="productProfit">Product Profit Analysis</TabsTrigger>
+                    <TabsTrigger value="supplierProfit">Supplier Profit Analysis</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="productProfit" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Product Performance Details</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex gap-4 mb-4">
+                                <select
+                                    value={sortCriteria}
+                                    onChange={(e) => setSortCriteria(e.target.value)}
+                                    className="p-2 border rounded bg-primary-foreground"
+                                >
+                                    <option value="profit">Profit</option>
+                                    <option value="name">Name</option>
+                                    <option value="totalUnitsSold">Units Sold</option>
+                                    <option value="totalRevenue">Revenue</option>
+                                    <option value="profitMargin">Margin</option>
+                                </select>
+                                <select
+                                    value={sortOrder}
+                                    onChange={(e) => setSortOrder(e.target.value)}
+                                    className="p-2 border rounded bg-primary-foreground"
+                                >
+                                    <option value="desc">Descending</option>
+                                    <option value="asc">Ascending</option>
+                                </select>
+                                <input
+                                    type="text"
+                                    placeholder="Filter by name..."
+                                    value={filterName}
+                                    onChange={(e) => setFilterName(e.target.value)}
+                                    className="p-2 border rounded bg-primary-foreground"
+                                />
+                            </div>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Product Name</TableHead>
+                                        <TableHead className="text-right">Units Sold</TableHead>
+                                        <TableHead className="text-right">Revenue</TableHead>
+                                        <TableHead className="text-right">Cost</TableHead>
+                                        <TableHead className="text-right">Profit</TableHead>
+                                        <TableHead className="text-right">Margin</TableHead>
+                                        <TableHead className="text-right">Avg Price</TableHead>
+                                        <TableHead className="text-right">Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {sortedAndFilteredProducts.map((product) => (
+                                        <TableRow key={product.productId}>
+                                            <TableCell className="font-medium">{product.name}</TableCell>
+                                            <TableCell className="text-right">{product.totalUnitsSold}</TableCell>
+                                            <TableCell className="text-right">₹{product.totalRevenue.toFixed(2)}</TableCell>
+                                            <TableCell className="text-right">₹{product.totalCost.toFixed(2)}</TableCell>
+                                            <TableCell className="text-right">₹{product.profit.toFixed(2)}</TableCell>
+                                            <TableCell className="text-right">{product.profitMargin.toFixed(1)}%</TableCell>
+                                            <TableCell className="text-right">₹{product.averageSellingPrice.toFixed(2)}</TableCell>
+                                            <TableCell className="text-right">
+                                                {product.isEstimated ? (
+                                                    <span className="text-yellow-500">Estimated</span>
+                                                ) : (
+                                                    <span className="text-green-500">Matched</span>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="supplierProfit" className="space-y-4">
+                    <Card className="col-span-4">
+                        <CardHeader>
+                            <CardTitle>Supplier Analysis</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex gap-4 mb-4">
+                                <select
+                                    value={supplierSortCriteria}
+                                    onChange={(e) => setSupplierSortCriteria(e.target.value)}
+                                    className="p-2 border rounded bg-primary-foreground"
+                                >
+                                    <option value="profit">Profit</option>
+                                    <option value="name">Name</option>
+                                    <option value="totalUnitsSold">Units Sold</option>
+                                    <option value="totalRevenue">Revenue</option>
+                                    <option value="profitMargin">Margin</option>
+                                </select>
+                                <select
+                                    value={supplierSortOrder}
+                                    onChange={(e) => setSupplierSortOrder(e.target.value)}
+                                    className="p-2 border rounded bg-primary-foreground"
+                                >
+                                    <option value="desc">Descending</option>
+                                    <option value="asc">Ascending</option>
+                                </select>
+                                <input
+                                    type="text"
+                                    placeholder="Filter by supplier name..."
+                                    value={supplierFilterName}
+                                    onChange={(e) => setSupplierFilterName(e.target.value)}
+                                    className="p-2 border rounded bg-primary-foreground"
+                                />
+                            </div>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Supplier</TableHead>
+                                        <TableHead className="text-right">Total Units Sold</TableHead>
+                                        <TableHead className="text-right">Total Revenue</TableHead>
+                                        <TableHead className="text-right">Total Cost</TableHead>
+                                        <TableHead className="text-right">Profit</TableHead>
+                                        <TableHead className="text-right">Profit Margin</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {sortedAndFilteredSuppliers.map((supplier) => (
+                                        <TableRow key={supplier.supplierId}>
+                                            <TableCell>{suppliers.find(s => s.id === supplier.supplierId)?.name}</TableCell>
+                                            <TableCell className="text-right">{supplier.totalUnitsSold}</TableCell>
+                                            <TableCell className="text-right">₹{supplier.totalRevenue.toFixed(2)}</TableCell>
+                                            <TableCell className="text-right">₹{supplier.totalCost.toFixed(2)}</TableCell>
+                                            <TableCell className="text-right">₹{supplier.profit.toFixed(2)}</TableCell>
+                                            <TableCell className="text-right">{supplier.profitMargin.toFixed(1)}%</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+
+
+
+
         </div>
     );
 }
