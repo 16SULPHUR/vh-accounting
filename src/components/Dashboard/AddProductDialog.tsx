@@ -28,7 +28,7 @@ export function AddProductDialog({
 
     const [name, setName] = useState(productName);
     const [cost, setCost] = useState(estimatedCost.toString());
-    const [sellingPrice, setSellingPrice] = useState(estimatedCost * 20);
+    const [sellingPrice, setSellingPrice] = useState((estimatedCost * 20).toFixed(2));
     const [quantity, setQuantity] = useState("0");
     const [supplier, setSupplier] = useState<string | null>(null);
     const [isAddingNewSupplier, setIsAddingNewSupplier] = useState(false);
