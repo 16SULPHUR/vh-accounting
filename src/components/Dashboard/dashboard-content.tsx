@@ -44,6 +44,7 @@ export interface Product {
 export interface Supplier {
   id: string;
   name: string;
+  code: number;
 }
 
 export function DashboardContent({ initialData }: DashboardContentProps) {
@@ -57,6 +58,21 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
+  const [shouldRefresh, setShouldRefresh] = useState(0);
+
+  // Add a function to refresh products
+  const refreshProducts = async () => {
+    const { data: productsData, error: productsError } = await supabase
+      .from("products")
+      .select("id, name, cost, sellingPrice, supplier");
+
+    if (productsError) {
+      console.error("Error fetching products:", productsError);
+    } else {
+      setAllProducts(productsData);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       const { data: productsData, error: productsError } = await supabase
@@ -65,7 +81,7 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
 
       const { data: suppliersData, error: suppliersError } = await supabase
         .from("suppliers")
-        .select("id, name");
+        .select("id, name, code");
 
       if (productsError) {
         console.error("Error fetching products:", productsError);
@@ -321,7 +337,12 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
           </div>
         </TabsContent>
         <TabsContent value="products" className="space-y-4">
-          <ProductAnalytics data={data} products={allproducts} suppliers={suppliers} />
+          <ProductAnalytics
+            data={data}
+            products={allproducts}
+            suppliers={suppliers}
+            onProductAdded={refreshProducts}
+          />
         </TabsContent>
       </Tabs>
     </div>

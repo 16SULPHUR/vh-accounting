@@ -4,6 +4,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Invoice, Product, Supplier } from './dashboard-content';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from '../ui/button';
+import { AddProductDialog } from './AddProductDialog';
 
 interface ProductAnalysis {
     productId: string;
@@ -45,12 +47,15 @@ interface ProductAnalyticsProps {
     data: Invoice[];
     products: Product[];
     suppliers: Supplier[];
+    onProductAdded: () => void; // Add this prop
 }
 
 type InvoiceSortKey = keyof Pick<InvoiceAnalysis, 'date' | 'customer' | 'totalRevenue' | 'profit' | 'profitMargin' | 'totalItems'>;
 
 
-export function ProductAnalytics({ data, products, suppliers }: ProductAnalyticsProps) {
+export function ProductAnalytics({ data, products, suppliers, onProductAdded }: ProductAnalyticsProps) {
+
+    const [productToAdd, setProductToAdd] = useState<{ name: string; cost: number } | null>(null);
 
     const closeInvoiceDetail = () => setSelectedInvoice(null);
     const handleInvoiceClick = (invoice: InvoiceAnalysis) => {
@@ -540,7 +545,19 @@ export function ProductAnalytics({ data, products, suppliers }: ProductAnalytics
                                             <TableCell className="text-right">₹{product.averageSellingPrice.toFixed(2)}</TableCell>
                                             <TableCell className="text-right">
                                                 {product.isEstimated ? (
-                                                    <span className="text-yellow-500">Estimated</span>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <span className="text-yellow-500">Estimated</span>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => setProductToAdd({
+                                                                name: product.name,
+                                                                cost: product.totalCost / product.totalUnitsSold
+                                                            })}
+                                                        >
+                                                            Add to Database
+                                                        </Button>
+                                                    </div>
                                                 ) : (
                                                     <span className="text-green-500">Matched</span>
                                                 )}
@@ -862,7 +879,19 @@ export function ProductAnalytics({ data, products, suppliers }: ProductAnalytics
                                                     <TableCell className="text-right">{product.profitMargin.toFixed(1)}%</TableCell>
                                                     <TableCell className="text-right">
                                                         {product.isEstimated ? (
-                                                            <span className="text-yellow-500">Estimated</span>
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                <span className="text-yellow-500">Estimated</span>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => setProductToAdd({
+                                                                        name: product.name,
+                                                                        cost: product.cost
+                                                                    })}
+                                                                >
+                                                                    Add to Database
+                                                                </Button>
+                                                            </div>
                                                         ) : (
                                                             <span className="text-green-500">Matched</span>
                                                         )}
@@ -902,7 +931,17 @@ export function ProductAnalytics({ data, products, suppliers }: ProductAnalytics
             </Tabs>
 
 
-
+            <AddProductDialog
+                open={!!productToAdd}
+                onOpenChange={(open) => !open && setProductToAdd(null)}
+                productName={productToAdd?.name || ''}
+                estimatedCost={productToAdd?.cost || 0}
+                suppliers={suppliers}
+                onSuccess={() => {
+                    setProductToAdd(null);
+                    onProductAdded(); // Call the refresh function
+                }}
+            />
 
         </div>
     );
