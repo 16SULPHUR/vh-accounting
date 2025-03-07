@@ -112,12 +112,51 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
       case 'today':
         filterDate.setHours(0, 0, 0, 0)
         break
+
+      case 'yesterday':
+        filterDate.setDate(filterDate.getDate() - 1)
+        filterDate.setHours(0, 0, 0, 0)
+        now.setDate(now.getDate() - 1)
+        now.setHours(23, 59, 59, 999)
+        break
+
+      case 'thisWeek':
+        const firstDayOfWeek = now.getDate() - now.getDay()
+        filterDate.setDate(firstDayOfWeek)
+        filterDate.setHours(0, 0, 0, 0)
+        break
+
+      case 'thisMonth':
+        filterDate.setDate(1)
+        filterDate.setHours(0, 0, 0, 0)
+        break
+
       case '7days':
         filterDate.setDate(filterDate.getDate() - 7)
         break
+
       case '30days':
         filterDate.setDate(filterDate.getDate() - 30)
         break
+
+      case 'lastMonth':
+        filterDate.setMonth(filterDate.getMonth() - 1)
+        filterDate.setDate(1)
+        filterDate.setHours(0, 0, 0, 0)
+        now.setDate(0) // Last day of previous month
+        now.setHours(23, 59, 59, 999)
+        break
+
+      case 'lastQuarter':
+        const quarter = Math.floor(now.getMonth() / 3)
+        filterDate.setMonth(quarter * 3 - 3)
+        filterDate.setDate(1)
+        filterDate.setHours(0, 0, 0, 0)
+        now.setMonth(quarter * 3)
+        now.setDate(0)
+        now.setHours(23, 59, 59, 999)
+        break
+
       case 'custom':
         if (dateRange.from && dateRange.to) {
           const fromDate = new Date(dateRange.from)
@@ -132,12 +171,16 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
           return
         }
         break
+
       default:
         setData(initialData)
         return
     }
 
-    const filteredData = initialData.filter(item => new Date(item.date) >= filterDate && new Date(item.date) <= now)
+    const filteredData = initialData.filter(item => {
+      const itemDate = new Date(item.date)
+      return itemDate >= filterDate && itemDate <= now
+    })
     setData(filteredData)
   }
 
@@ -182,8 +225,13 @@ export function DashboardContent({ initialData }: DashboardContentProps) {
             <SelectContent>
               <SelectItem value="all">All Time</SelectItem>
               <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="yesterday">Yesterday</SelectItem>
+              <SelectItem value="thisWeek">This Week</SelectItem>
+              <SelectItem value="thisMonth">This Month</SelectItem>
               <SelectItem value="7days">Last 7 Days</SelectItem>
               <SelectItem value="30days">Last 30 Days</SelectItem>
+              <SelectItem value="lastMonth">Last Month</SelectItem>
+              <SelectItem value="lastQuarter">Last Quarter</SelectItem>
               <SelectItem value="custom">Custom Range</SelectItem>
             </SelectContent>
           </Select>
